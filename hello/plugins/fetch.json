@@ -1,0 +1,26 @@
+{
+    "cordova-plugin-whitelist": {
+        "source": {
+            "type": "registry",
+            "id": "cordova-plugin-whitelist@1"
+        },
+        "is_top_level": true,
+        "variables": {}
+    },
+    "com.pylonproducts.wifiwizard": {
+        "source": {
+            "type": "registry",
+            "id": "com.pylonproducts.wifiwizard"
+        },
+        "is_top_level": true,
+        "variables": {}
+    },
+    "com.red_folder.phonegap.plugin.backgroundservice.sample": {
+        "source": {
+            "type": "local",
+            "path": "F:\\ionic\\bgs-sample-master"
+        },
+        "is_top_level": true,
+        "variables": {}
+    }
+}

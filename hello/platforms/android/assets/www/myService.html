@@ -1,0 +1,665 @@
+<!DOCTYPE HTML>
+<!--
+/*
+ * Copyright 2013 Red Folder Consultancy Ltd
+ *   
+ * Licensed under the Apache License, Version 2.0 (the "License");   
+ * you may not use this file except in compliance with the License.   
+ * You may obtain a copy of the License at       
+ * 
+ * 	http://www.apache.org/licenses/LICENSE-2.0   
+ *
+ * Unless required by applicable law or agreed to in writing, software   
+ * distributed under the License is distributed on an "AS IS" BASIS,   
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   
+ * See the License for the specific language governing permissions and   
+ * limitations under the License.
+ */
+-->
+<html>
+	<head>
+		<title>Servicio</title>
+		
+		<script type="text/javascript" src="cordova.js"></script>
+    <script src="https://cdn.firebase.com/js/client/2.2.9/firebase.js"></script>
+    <script src="https://cdn.firebase.com/libs/angularfire/1.1.1/angularfire.min.js"></script>
+        <script type="text/javascript" >
+        	var myService;
+        	var fecha;
+        	var network;
+        	var user_g;
+        	var pass_g;
+        	var v_entrada;
+        	var v_salida;
+        	document.addEventListener('deviceready', function() {
+				myService = cordova.plugins.myService;	
+				
+				getStatus();
+  			}, true);
+
+ 			function handleSuccess(data) {
+ 				updateView(data);
+ 			}
+ 			
+ 			function handleError(data) {
+				alert("Error handleError: " + data.ErrorMessage);
+ 				alert(JSON.stringify(data));
+				updateView(data);
+ 			}
+
+			/*
+			 * Button Handlers
+			 */ 			
+ 			function getStatus() {
+ 				myService.getStatus(	function(r){handleSuccess(r)},
+ 										function(e){handleError(e)});
+ 			};
+
+/* 			function startService() {
+ 				getConfig();
+ 				//getScanResult();
+ 				alert("enter");
+ 				registra("Entrada");
+ 				registra("Salida");
+ 				reg_externo();
+ 				alert("des");
+				myService.startService(	function(r){handleSuccess(r)},
+										function(e){handleError(e)});
+ 			}*/
+
+ 			function stopService() {
+	 			myService.stopService(	function(r){handleSuccess(r)},
+ 										function(e){handleError(e)});
+			}
+
+ 			function enableTimer() {
+				myService.enableTimer(	60000,
+										function(r){handleSuccess(r)},
+										function(e){handleError(e)});
+ 			}
+
+ 			function disableTimer() {
+	 			myService.disableTimer(	function(r){handleSuccess(r)},
+ 										function(e){handleError(e)});
+			};
+			 			
+ 			function registerForBootStart() {
+				myService.registerForBootStart(	function(r){handleSuccess(r)},
+												function(e){handleError(e)});
+ 			}
+
+ 			function deregisterForBootStart() {
+				myService.deregisterForBootStart(	function(r){handleSuccess(r)},
+													function(e){handleError(e)});
+ 			}
+
+ 			function registerForUpdates() {
+				myService.registerForUpdates(	function(r){handleSuccess(r)},
+												function(e){handleError(e)});
+ 			}
+
+ 			function deregisterForUpdates() {
+				myService.deregisterForUpdates(	function(r){handleSuccess(r)},
+												function(e){handleError(e)});
+ 			}
+
+ 			function error_update(tx){ 
+ 				alert("Error al guardar los datos"); };
+
+ 			function success_update(tx,result){ 
+ 				if(result.rowsAffected==0)
+ 				{
+ 					insertar_user();
+ 				}
+ 			};
+
+ 			function insertar_user() {
+				var networkTxt = document.getElementById("networkTxt");
+ 				var networkToString = networkTxt.value;
+ 				var usuarioTxt = document.getElementById("usuarioTxt");
+ 				var usuarioToString = usuarioTxt.value;
+ 				var passwordTxt = document.getElementById("passwordTxt");
+ 				var passwordToString = passwordTxt.value;
+ 				var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				db.transaction(function(tx) {
+					    tx.executeSql('create table if not exists Usuario(id, network_code, user_code, password_code)');
+					});					
+ 				db.transaction(function(tx) {
+ 				tx.executeSql('INSERT INTO Usuario (id, network_code, user_code, password_code) values (?,?,?,?)', 
+ 					[1,''+networkToString+'',''+usuarioToString+'',''+passwordToString+''], function(tx, result){
+ 					},
+				        function(tx, error){
+				          alert('Error insertar_user: ' + error.message);
+				        })
+ 				});
+ 			}
+
+ 			function setConfig() {
+ 				borrar();
+				var networkTxt = document.getElementById("networkTxt");
+ 				var networkToString = networkTxt.value;
+ 				var usuarioTxt = document.getElementById("usuarioTxt");
+ 				var usuarioToString = usuarioTxt.value;
+ 				var passwordTxt = document.getElementById("passwordTxt");
+ 				var passwordToString = passwordTxt.value;
+ 				var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				network = networkToString;
+ 				user_g = usuarioToString;
+ 				pass_g = passwordToString;
+ 				db.transaction(function(tx) {
+ 				tx.executeSql('update Usuario set network_code=?, user_code=?, password_code=? where id=1', 
+ 					[networkToString,usuarioToString,passwordToString], success_update, error_update);});
+
+ 				var config = { 
+ 								"network"  : networkToString,
+ 								"usuario"  : usuarioToString,
+ 								"password" : passwordToString
+ 							}; 
+				myService.setConfiguration(	config,
+											function(r){handleSuccess(r)},
+											function(e){handleError(e)});
+ 			}
+
+ 			function getConfig() {
+ 				var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				
+ 				db.transaction(function(tx) {
+					    tx.executeSql('create table if not exists Usuario(id, network_code, user_code, password_code)');
+					});
+ 				db.transaction(function(tx) {
+ 				tx.executeSql('select * from Usuario where id=1', 
+ 					[], success_select, error_select);
+ 				}); 				
+ 			}
+
+ 			function error_select(tx){ 
+ 				alert("Error al guardar los datos"); };
+
+ 			function success_select(tx,result){ 
+ 				if(result.rows.length>0)
+ 				{
+ 					var credenciales = result.rows.item(0);
+ 					network = credenciales.network_code;
+ 					user_g = credenciales.user_code;
+ 					pass_g = credenciales.password_code;
+ 					var networkToString = credenciales.network_code;
+ 					var usuarioToString = credenciales.user_code;
+ 					var passwordToString = credenciales.password_code;
+	 				var config = { 
+	 								"network"  : networkToString,
+	 								"usuario"  : usuarioToString,
+	 								"password" : passwordToString
+	 							}; 
+					myService.setConfiguration(	config,
+												function(r){handleSuccess(r)},
+												function(e){handleError(e)});
+ 				}
+ 				else
+ 				{
+ 					var networkToString = "";
+ 					var usuarioToString = "";
+ 					var passwordToString = "";
+	 				var config = { 
+	 								"network"  : networkToString,
+	 								"usuario"  : usuarioToString,
+	 								"password" : passwordToString
+	 							}; 
+					myService.setConfiguration(	config,
+												function(r){handleSuccess(r)},
+												function(e){handleError(e)}); 					
+ 				}
+ 			}
+//******************************** INICIO: DETECCION RED ********************************
+
+			function fail(e){
+				registra("Salida");
+			    //alert("Failed"+e);
+			}
+
+			function listHandler2(arr){
+				//alert("Entra OK");
+				var net_exist = 0;
+			        for(var i=0;i<arr.length;i++){
+			        var obj = arr[i];
+			        for(var key in obj){
+			            var attrName = key;
+			            var attrValue = obj[key];
+			            
+			            if (attrName =='SSID' && attrValue == network) {
+			            	net_exist = 1;
+			            	//alert(attrName+" ver "+attrValue);
+			            }
+			        }
+			    }
+			    if (net_exist == 0) {
+			    	registra("Salida");
+			    } else {
+			    	//alert("hay Red");
+			    	registra("Entrada");
+			    	reg_externo();
+			    }
+			}
+
+			function getScanResult(){
+			    WifiWizard.getScanResults(listHandler2, fail);
+			 }
+
+//******************************** FIN: DETECCION RED ********************************
+
+ 			function startService() {
+ 				getConfig();
+ 				//getScanResult();
+ 				//borrar();
+ 				//registra("Entrada");
+ 				//registra("Salida");
+ 				//reg_externo();
+				myService.startService(	function(r){handleSuccess(r)},
+										function(e){handleError(e)});
+ 			}
+
+/*function borrar()
+{
+					var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				db.transaction(function(tx) {
+					    tx.executeSql('create table if not exists Registrar(hora_entrada, hora_salida, estado, upload)');
+					});
+ 				 				db.transaction(function(tx) {
+ 				tx.executeSql('delete from Registrar', 
+ 					[], function(tx,result){`//alert("borro");
+	 				}, function(tx,error){//alert("bor error");
+	 				});
+	 				});
+}*/
+//******************************** INICIO: REGISTRO BASE DE DATOS INTERNO ********************************
+			function registra(tipo)
+			{
+				var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				db.transaction(function(tx) {
+					    tx.executeSql('create table if not exists Registrar(hora_entrada, hora_salida, estado, upload)');
+					});
+
+ 				db.transaction(function(tx) {
+ 				tx.executeSql('select count(*) num from Registrar where estado="A"', 
+ 					[], function(tx, result){
+				          var exi = result.rows.item(0);
+				          //alert("registros:"+exi.num);
+				          if (exi.num == 0 && tipo == "Entrada") {
+				          	//alert("registro nuevo");
+				          	v_entrada = fecha;
+				          	reg_nuevo();
+				          }
+				          if (exi.num == 1 && tipo == "Salida") {
+				          	//alert("registro existente");
+				          	v_salida = fecha;
+				          	reg_existe();
+				          }
+				        },
+				        function(tx, error){
+				          alert('Error insertar_user: ' + error.message);
+				        });
+ 				});
+			}
+
+			function reg_nuevo()
+			{
+				//alert("entra nuevo");
+				var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				db.transaction(function(tx) {
+					    tx.executeSql('create table if not exists Registrar(hora_entrada, hora_salida, estado, upload)');
+					});
+
+ 				db.transaction(function(tx) {
+ 				tx.executeSql('select count(*) num from Registrar where estado="A"', 
+ 					[], function(tx, result){
+				          var exi = result.rows.item(0);
+				          //alert("registros a insertar:"+exi.num);
+				          if (exi.num == 0) {
+				          	//alert("registrando");
+				          	 	db.transaction(function(tx) {
+				 				tx.executeSql('INSERT INTO Registrar (hora_entrada, hora_salida, estado, upload) values (?,?,?,?)', 
+				 					[fecha,null,"A","PEN"], function(tx, result){
+				 						//alert("reg nuevo2");
+				 					},
+								        function(tx, error){
+								          alert('Error insertar_registro: ' + error.message);
+								        })
+				 				});
+				          }
+				        },
+				        function(tx, error){
+				          alert('Error insertar_user: ' + error.message);
+				        });
+ 				});
+
+			}
+
+			function reg_existe()
+			{
+				//alert("entra exists")
+				var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				db.transaction(function(tx) {
+					    tx.executeSql('create table if not exists Registrar(hora_entrada, hora_salida, estado, upload)');
+					});
+
+ 				db.transaction(function(tx) {
+ 				tx.executeSql('update Registrar set hora_salida=?, estado=? where estado="A"', 
+ 					[fecha,"I"], function(tx,result){
+ 						//alert("Las filas actualizadas: "+result.rowsAffected);
+ 					}, function(tx,error){});
+ 				});
+
+			}
+
+//******************************** FIN: REGISTRO BASE DE DATOS INTERNO ***********************************
+
+//******************************** INICIO: REGISTRO BASE DE DATOS EXTERNA ********************************
+
+			function reg_externo()
+			{
+				//alert("entra externo");
+				var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				db.transaction(function(tx) {
+					    tx.executeSql('create table if not exists Registrar(hora_entrada, hora_salida, estado, upload)');
+					});
+
+ 				db.transaction(function(tx) {
+ 				tx.executeSql('select * from Registrar where upload="PEN" and estado="I"', 
+ 					[], registrar_externo,
+				        function(tx, error){
+				          alert('Error registros pendientes: ' + error.message);
+				        });
+ 				});
+			}
+
+			function registrar_externo(tx, result){
+				//alert("entra reg externo");
+				for (i = 0; i < result.rows.length; i++) { 
+					var horas = result.rows.item(i);
+					var h_entrada = horas.hora_entrada;
+					var h_salida = horas.hora_salida;
+					reg_externo_real("Entrada",h_entrada);
+					reg_externo_real("Salida",h_salida);
+					var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+	 				db.transaction(function(tx) {
+						    tx.executeSql('create table if not exists Registrar(hora_entrada, hora_salida, estado, upload)');
+						});
+
+	 				db.transaction(function(tx) {
+	 				tx.executeSql('update Registrar set upload="OK" where estado="I" and upload="PEN" and hora_entrada=? and hora_salida=?', 
+ 					[h_entrada,h_salida], function(tx, result){//alert("actualiza load")
+				        }, function(tx, error){
+				          alert('Error actualizar registro externo: ' + error.message);
+				        });
+					});
+				}
+			}
+
+			function reg_externo_real(h_tipo,h_hora){
+					var ref = new Firebase("https://vivid-inferno-5814.firebaseio.com/users");
+					ref.authWithPassword({
+					  email    : user_g,
+					  password : pass_g
+					}, function(error, authData) {
+					  if (error) {
+					    alert("Error en Login!", error);
+					  } else {
+					    remember: "sessionOnly"
+					  }
+					});
+					var usersRef = ref.child("registros");
+					usersRef.push({
+					    db_tipo: h_tipo,
+					    db_fecha: h_hora
+					});
+			 }
+
+//******************************** FIN: REGISTRO BASE DE DATOS EXTERNA ********************************
+
+			 function success_reg_entrada(tx,result){
+ 				if(result.rows.length>0)
+ 				{
+ 					var cred = result.rows.item(0);
+ 					var user_id = cred.user_code;
+ 					var pass_id = cred.password_code;
+					var ref = new Firebase("https://vivid-inferno-5814.firebaseio.com/users");
+					ref.authWithPassword({
+					  email    : user_id,
+					  password : pass_id
+					}, function(error, authData) {
+					  if (error) {
+					    alert("Error en Login!", error);
+					  } else {
+					    remember: "sessionOnly"
+					  }
+					});
+					var usersRef = ref.child("registros");
+					usersRef.push({
+					    db_tipo: "Entrada",
+					    db_fecha: fecha
+					});
+				}
+			 }
+
+			function reg_entrada(){
+				var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				db.transaction(function(tx) {
+					    tx.executeSql('create table if not exists Usuario(id, network_code, user_code, password_code)');
+					});
+ 				db.transaction(function(tx) {
+ 				tx.executeSql('select * from Usuario where id=1', 
+ 					[], success_reg_entrada,
+				        function(tx, error){
+				          alert('Error insertar_user: ' + error.message);
+				        });
+ 				});
+			}
+
+			 function success_reg_salida(tx,result){
+ 				if(result.rows.length>0)
+ 				{
+ 					var cred = result.rows.item(0);
+ 					var user_id = cred.user_code;
+ 					var pass_id = cred.password_code;
+					var ref = new Firebase("https://vivid-inferno-5814.firebaseio.com/users");
+					ref.authWithPassword({
+					  email    : user_id,
+					  password : pass_id
+					}, function(error, authData) {
+					  if (error) {
+					    alert("Error en Login!", error);
+					  } else {
+					    remember: "sessionOnly"
+					  }
+					});
+					var usersRef = ref.child("registros");
+					usersRef.push({
+					    db_tipo: "Salida",
+					    db_fecha: fecha
+					});
+				}
+			 }
+
+			function reg_salida(){
+				var db = window.openDatabase("DatoUsuario", "1.0", "BD con los datos del Usuario", 2*1024*1024);
+ 				db.transaction(function(tx) {
+					    tx.executeSql('create table if not exists Usuario(id, network_code, user_code, password_code)');
+					});
+ 				db.transaction(function(tx) {
+ 				tx.executeSql('select * from Usuario where id=1', 
+ 					[], success_reg_salida,
+				        function(tx, error){
+				          alert('Error insertar_user: ' + error.message);
+				        });
+ 				});
+			}
+
+			/*
+			 * View logic
+			 */
+ 			function updateView(data) {
+				var serviceBtn = document.getElementById("toggleService");
+				var timerBtn = document.getElementById("toggleTimer");
+				var bootBtn = document.getElementById("toggleBoot");
+				var listenBtn = document.getElementById("toggleListen");
+				var updateBtn = document.getElementById("updateBtn");
+				var refreshBtn = document.getElementById("refreshBtn");
+
+				var serviceStatus = document.getElementById("serviceStatus");
+				var timerStatus = document.getElementById("timerStatus");
+				var bootStatus = document.getElementById("bootStatus");
+				var listenStatus = document.getElementById("listenStatus");
+				
+				serviceBtn.disabled = false;
+				if (data.ServiceRunning) {
+					serviceStatus.innerHTML = "Running";
+					serviceBtn.onclick = stopService;
+					timerBtn.disabled = false;
+					if (data.TimerEnabled) {
+						timerStatus.innerHTML = "Enabled";
+						timerBtn.onclick = disableTimer;
+					} else {
+						timerStatus.innerHTML = "Disabled";
+						timerBtn.onclick = enableTimer;
+					} 
+
+					updateBtn.disabled = false;
+					updateBtn.onclick = setConfig;
+
+					refreshBtn.disabled = false;
+					refreshBtn.onclick = getStatus;
+
+				} else { 
+					serviceStatus.innerHTML = "Not running";
+					serviceBtn.onclick = startService;
+					timerBtn.disabled = true;
+					timerEnabled = false; 
+
+					updateBtn.disabled = true;
+					refreshBtn.disabled = true;
+				} 
+
+				bootBtn.disabled = false;
+				if (data.RegisteredForBootStart) {
+					bootStatus.innerHTML = "Registered";
+					bootBtn.onclick = deregisterForBootStart;
+				} else {
+					bootStatus.innerHTML = "Not registered";
+					bootBtn.onclick = registerForBootStart;
+				}
+				
+				listenBtn.disabled = false;
+				if (data.RegisteredForUpdates) {
+					listenStatus.innerHTML = "Registered";
+					listenBtn.onclick = deregisterForUpdates;
+				} else {
+					listenStatus.innerHTML = "Not registered";
+					listenBtn.onclick = registerForUpdates;
+				}
+
+				if (data.Configuration != null)
+				{
+					try {
+						var networkTxt = document.getElementById("networkTxt");
+						networkTxt.value = data.Configuration.network;
+						var usuarioTxt = document.getElementById("usuarioTxt");
+						usuarioTxt.value = data.Configuration.usuario;
+						var passwordTxt = document.getElementById("passwordTxt");
+						passwordTxt.value = data.Configuration.password;
+					} catch (err) {
+					}
+				}
+				
+				if (data.LatestResult != null)
+				{
+					try {
+						var resultMessage = document.getElementById("resultMessage");
+						resultMessage.innerHTML = data.LatestResult.Message;
+						var resultMessage2 = document.getElementById("resultMessage2");
+						resultMessage2.innerHTML = v_entrada; //data.LatestResult.Message2;
+						var resultMessage3 = document.getElementById("resultMessage3");
+						resultMessage3.innerHTML = v_salida; //data.LatestResult.Message3;
+						fecha = data.LatestResult.Message;
+						reg_externo();
+						if (network != "") {
+							getScanResult();
+						}
+ 					} catch (err) {
+ 					}
+				}
+
+ 			}
+
+		</script>
+		
+	</head>
+	
+	<body>
+		<h1>Servicio Regitro de Horas</h1>
+		<table>
+			<tr>
+				<th>Servicio</th>
+				<td><div id="serviceStatus"></div></td>
+				<td><input disabled id="toggleService" type="button" value="Activar"/></td>
+			</tr>
+			<tr>
+				<th>Timer</th>
+				<td><div id="timerStatus"></div></td>
+				<td><input disabled id="toggleTimer" type="button" value="Activar"/></td>
+			</tr>
+			<tr>
+				<th>Boot</th>
+				<td><div id="bootStatus"></div></td>
+				<td><input disabled id="toggleBoot" type="button" value="Activar"/></td>
+			</tr>
+			<tr>
+				<th>Iniciar</th>
+				<td><div id="listenStatus"></div></td>
+				<td><input disabled id="toggleListen" type="button" value="Activar"/></td>
+			</tr>
+			
+			<tr>
+				<th colspan=3 align="center">Configuracion</th>
+			</tr>
+			<tr>
+				<th align="left">Red: </th>
+				<td colspan=2 align="center"><input id="networkTxt" type="Text"/></td>
+			</tr>
+			<tr>
+				<th align="left">Usuario: </th>
+				<td colspan=2 align="center"><input id="usuarioTxt" type="Text"/></td>
+			</tr>
+			<tr>
+				<th align="left">Password: </th>
+				<td colspan=2 align="center"><input id="passwordTxt" type="Text"/></td>
+			</tr>						
+			<tr>
+				<td colspan=3 align="center"><input disabled id="updateBtn" type="button" value="Update Config"/></td>
+			</tr>
+			
+			<tr>
+				<th colspan=3 align="center">Ultima Revision</th>
+			</tr>
+			
+			<tr>
+				<th align="left">Hora: </th>
+				<td colspan=2 align="center"><div id="resultMessage"></div></td>
+			</tr>
+
+			<tr>
+				<th align="left">Entrada: </th>
+				<td colspan=2 align="center"><div id="resultMessage2"></div></td>
+			</tr>
+
+			<tr>
+				<th align="left">Salida: </th>
+				<td colspan=2 align="center"><div id="resultMessage3"></div></td>
+			</tr>
+			
+			<tr>
+				<td colspan=3 align="center"><input disabled id="refreshBtn" type="button" value="Refresh"/></td>
+			</tr>
+			
+		</table>
+		
+	</body>
+</html>
